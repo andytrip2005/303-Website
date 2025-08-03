@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Spread of Misinformation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Manrope', sans-serif;
+      background: linear-gradient(to bottom, #153a5b, #ffffff);
+      color: #000;
+      line-height: 1.6;
+    }
+    header {
+      text-align: center;
+      padding: 3em 2em;
+      background: linear-gradient(to right, #1c5dab, #3e8ed0);
+      color: white;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    header h1 {
+      font-size: 3em;
+      margin-bottom: 0.2em;
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.4);
+    }
+    section {
+      padding: 3em 2em;
+      max-width: 1100px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 25px;
+      margin-top: 2em;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
+    }
+    h2 {
+      font-size: 2em;
+      color: #1c5dab;
+      border-left: 8px solid #3e8ed0;
+      padding-left: 15px;
+      margin-bottom: 1em;
+      text-transform: uppercase;
+    }
+    ul {
+      padding-left: 1.8em;
+    }
+    li {
+      margin-bottom: 0.6em;
+    }
+    .highlight {
+      font-weight: 600;
+      color: #0d3c91;
+    }
+    .glow-box {
+      background: linear-gradient(135deg, #c6e2ff, #e0f0ff);
+      border-radius: 30px;
+      padding: 2em;
+      margin: 2em 0;
+      box-shadow: 0 0 55px rgba(58, 143, 255, 0.3);
+      transition: transform 0.3s ease;
+    }
+    .glow-box:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 50px rgba(58, 163, 255, 0.5);
+    }
+    canvas {
+      margin-top: 2em;
+      width: 100% !important;
+      height: auto !important;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+    #ontarioMap {
+      height: 600px;
+      width: 100%;
+      margin-top: 2em;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>The Spread of Misinformation on Social Media</h1>
+    <p>By Moosa Malik, Andy Tripathy, and Iba Abbasi</p>
+  </header>
+
+  <section class="glow-box">
+    <h2>Why This Matters</h2>
+    <p>Misinformation is no longer just a side-effect of social media. It's part of its core algorithmic structure. The platforms we rely on for news are also spreading false or biased content at scale, often without user awareness. This issue has social, political, and psychological implications. With deepfake technology and AI-generated content, the problem is escalating.</p>
+  </section>
+
+  <section class="glow-box">
+    <h2>Methodology</h2>
+    <ul>
+      <li><strong>Participants:</strong> 84 university students aged 18–23</li>
+      <li><strong>Survey Tool:</strong> Google Forms (15 quantitative & qualitative questions)</li>
+      <li><strong>Collected Metrics:</strong> Platform usage, perceived credibility, confidence in detection, peer trust, and reaction types</li>
+      <li><strong>Tools Used:</strong> Cleaned and Processed in Microsoft Excel</li>
+    </ul>
+  </section>
+
+  <section class="glow-box">
+    <h2>Respondent Locations </h2>
+    <div id="ontarioMap"></div>
+  </section>
+
+  <script>
+    const cityData = {
+      'Toronto': 7,
+      'Waterloo': 9,
+      'Mississauga': 6,
+      'Brampton': 10,
+      'North York': 8,
+      'Vaughan': 13,
+      'Markham': 8,
+      'Kitchener': 9  ,
+      'Scarborough': 4,
+      'Etobicoke': 4,
+    };
+
+    const cityCoords = {
+      'Toronto': [43.65107, -79.347015],
+      'Waterloo': [43.4643, -80.5204],
+      'Mississauga': [43.5890, -79.6441],
+      'Brampton': [43.7315, -79.7624],
+      'North York': [43.7700, -79.4120],
+      'Vaughan': [43.8370, -79.5083],
+      'Markham': [43.8561, -79.3370],
+      'Kitchener': [43.4516, -80.4925],
+      'Scarborough': [43.7731, -79.2578],
+      'Etobicoke': [43.6205, -79.5132],
+    };
+
+    const map = L.map('ontarioMap').setView([43.7, -79.42], 8);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    for (const city in cityData) {
+      const count = cityData[city];
+      const [lat, lon] = cityCoords[city];
+      const circle = L.circle([lat, lon], {
+        color: '#1c5dab',
+        fillColor: '#3e8ed0',
+        fillOpacity: 0.6,
+        radius: count * 500
+      }).addTo(map);
+      circle.bindPopup(`<b>${city}</b><br>Respondents: ${count}`);
+    }
+  </script>
+
+  <section class="glow-box">
+  <h2>Platform Usage</h2>
+  <p>The most frequently used platforms among students were TikTok and Threads, followed by YouTube and Facebook. Each platform is designed for high-speed content delivery, often without rigorous fact-checking.</p>
+  <canvas id="platformChart"></canvas>
+</section>
+
+<section class="glow-box">
+  <h2>Most Misleading Platforms</h2>
+  <p>According to students, TikTok and Facebook were identified as the worst platforms for misinformation. These platforms are heavily algorithmic and prioritize engagement over accuracy.</p>
+  <canvas id="misleadingChart"></canvas>
+</section>
+
+<section class="glow-box">
+  <h2>Confidence in Detecting Misinformation</h2>
+  <p>The majority of students are not confident in identifying misinformation. Only 6% considered themselves "very confident," showing a major media literacy gap.</p>
+  <canvas id="confidenceChart"></canvas>
+</section>
+
+<section class="glow-box">
+  <h2>Reactions to Misinformation</h2>
+  <p>Most students either Google the information or ignore it. A smaller number report or attempt to correct it, while only 8.2% said they share it.</p>
+  <canvas id="reactionChart"></canvas>
+</section>
+
+<section class="glow-box">
+  <h2>Trust in Peers</h2>
+  <p>Only 21% of students said they trust their peers to detect misinformation. 33% were unsure, and 46% did not trust their peers at all.</p>
+  <canvas id="trustChart"></canvas>
+</section>
+
+<script>
+const platformChart = new Chart(document.getElementById('platformChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['TikTok', 'Threads', 'YouTube', 'Facebook', 'Reddit', 'Instagram', 'Twitter'],
+    datasets: [{
+      label: 'Usage Count',
+      data: [42, 41, 38, 33, 32, 31, 26],
+      backgroundColor: '#1c5dab',
+      borderRadius: 10
+    }]
+  },
+  options: {
+    plugins: {
+      title: {
+        display: true,
+        text: 'Most Used Platforms'
+      }
+    },
+    animation: {
+      duration: 1500
+    }
+  }
+});
+
+const misleadingChart = new Chart(document.getElementById('misleadingChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['TikTok', 'Facebook', 'Twitter', 'YouTube', 'Threads', 'Instagram'],
+    datasets: [{
+      label: 'Misleading Reports',
+      data: [35, 26, 20, 15, 10, 8],
+      backgroundColor: '#1ed3ff',
+      borderRadius: 10
+    }]
+  },
+  options: {
+    plugins: {
+      title: {
+        display: true,
+        text: 'Most Misleading Platforms'
+      }
+    },
+    animation: {
+      duration: 1500
+    }
+  }
+});
+
+const confidenceChart = new Chart(document.getElementById('confidenceChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['Very Confident', 'Somewhat Confident', 'Neutral', 'Not Very Confident', 'Not Confident At All'],
+    datasets: [{
+      label: 'Student Count',
+      data: [6, 24, 18, 33, 19],
+      backgroundColor: '#36a2eb',
+      borderRadius: 10
+    }]
+  },
+  options: {
+    plugins: {
+      title: {
+        display: true,
+        text: 'Confidence in Detecting Misinformation'
+      }
+    },
+    animation: {
+      duration: 1500
+    }
+  }
+});
+
+const reactionChart = new Chart(document.getElementById('reactionChart').getContext('2d'), {
+  type: 'pie',
+  data: {
+    labels: ['Google it', 'Report it', 'Ignore it', 'Other', 'Share it'],
+    datasets: [{
+      label: 'Percentage',
+      data: [29.4, 24.7, 23.5, 14.1, 8.2],
+      backgroundColor: ['#1c5dab', '#3e8ed0', '#7abaff', '#bedfff', '#a1b1ff']
+    }]
+  },
+  options: {
+    plugins: {
+      title: {
+        display: true,
+        text: 'How Students React to Misinformation'
+      }
+    },
+    animation: {
+      duration: 1500
+    }
+  }
+});
+
+const trustChart = new Chart(document.getElementById('trustChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Yes', 'Not Sure', 'No'],
+    datasets: [{
+      label: 'Percentage',
+      data: [21, 33, 46],
+      backgroundColor: ['#36a2eb', '#7abaff', '#a1b1ff']
+    }]
+  },
+  options: {
+    plugins: {
+      title: {
+        display: true,
+        text: 'Trust in Peers to Spot Misinformation'
+      }
+    },
+    animation: {
+      duration: 1500
+    }
+  }
+});
+</script>
+<section>
+</section> <section class="glow-box">
+  <h2>Recommendations</h2>
+  <ul>
+    <li><strong>Embed Media Literacy Education:</strong> Universities should include media literacy courses or workshops as part of general education requirements to equip students with tools to spot and combat misinformation.</li>
+    <li><strong>Platform Accountability:</strong> Social media companies should invest in AI tools that detect false information, with clear labelling and less reach for unverified content.</li>
+    <li><strong>Student Engagement:</strong> Encourage peer-led initiatives where students can fact-check trending topics collaboratively and raise awareness through clubs or campus events.</li>
+    <li><strong>Faculty Involvement:</strong> Professors should integrate digital discernment discussions into class discussions like humanities, social sciences, and communication courses.</li>
+  </ul>
+</section>
+
+<section class="glow-box">
+  <h2>Team Members</h2>
+  <ul>
+    <li><strong>Andy Tripathy</strong> — 21072076</li>
+    <li><strong>Moosa Malik</strong> — 20913010</li>
+    <li><strong>Iba Abbasi</strong> — 21086411</li>
+  </ul>
+</section>
+  <!-- Add recommendations and team members section -->
+</body>
+</html>
+
